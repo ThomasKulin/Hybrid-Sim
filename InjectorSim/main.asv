@@ -15,15 +15,14 @@ T1_o = 274.25; % Initial tank fluid temperature, K
 R = 0.1889241; % Gas constant, kJ/(kg*K)
 % Injector Properties
 %--------------------------------------------------------------------------
-n_inj = 20; % Number of injector orifices (UNTESTED)-THOMAS
-d_inj = 0.0015; % Injector diameter, m
+d_inj = 0.178; % Injector diameter, m
 Ac = (pi/4)*(d_inj)^2; % Injector cross sectional area; m3
 Cd = 0.8; % Injector discharge coefficient
 Pamb = 85.9e-3; % Atmospheric pressure, MPa. (4500ft)
-Inj_Switch = 1; % Isentropic = 1, Adiabatic = 2
+Inj_Switch = 2; % Isentropic = 1, Adiabatic = 2
 % Time Iteration
 %--------------------------------------------------------------------------
-tstop = 15; % Stop time, s
+tstop = 30; % Stop time, s
 dt = .5; % Step time, s
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -66,7 +65,7 @@ while t < tstop
 
     % Exit the loop when the tank is out of fluid
     %----------------------------------------------------------------------
-    if M < 0.1; break; end
+    if M < 0; break; end
 
     % Initial Tank Fluid Properties
     %======================================================================
@@ -107,7 +106,8 @@ while t < tstop
         %}
     elseif Inj_Switch == 2
         %Set up function to match pressure and enthalpy
-        pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 getfield(CO2Props(v(1),v(2)),'h')-h1];
+        pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 ...
+        getfield(CO2Props(v(1),v(2)),'h')-h1];
     end
 
     % Solve for T2 & rho2 downstream of the injector
@@ -130,9 +130,9 @@ while t < tstop
     % Weighting Coefficient
     W = (1/(k+1));
     % Incompressible fluid mass flow rate
-    mdot_inc = Ac*sqrt(2*rhoL1*(P1-P2)*1e6)*n_inj;
+    mdot_inc = Ac*sqrt(2*rhoL1*(P1-P2)*1e6);
     % Homogeneous Equilibrium mass flow rate
-    mdot_HEM = rho2*Ac*sqrt(2*(h1-h2))*n_inj;
+    mdot_HEM = rho2*Ac*sqrt(2*(h1-h2));
     % Weighted Non-Homogeneous Equilibrium (modified Stanford) mass flow rate
     mdot = Cd*((1-W) * mdot_inc + W * mdot_HEM); % Shannon's Theory
     
