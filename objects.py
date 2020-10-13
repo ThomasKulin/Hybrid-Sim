@@ -1,5 +1,11 @@
+# Classes and stuff
+# Written by: Thomas Kulin
+# October 2, 2020
+
+from rocketcea.cea_obj import CEA_Obj, add_new_fuel
 import matlab.engine
 import os
+
 
 class Injector:
     def __init__(self, V=0.01824, M_0=13, T1_0=274.25, n_inj=20, d_inj=0.0015, Cd=0.8, P2=85.9e-3, species="N2O", dt=0.5):
@@ -32,3 +38,17 @@ class Injector:
         self.mdot = data[7]  # Tank mass flow rate [kg/s]
         self.state1 = data[8]  # Tank fluid State [-1=- Input, 0=Liq, ...1=Sat, 2=Gas]
         print(data)
+
+
+class CEA:
+    def __init__(self, oxName, fuelName, OFRatio, Pc, ExpansionRatio):
+        self.C = CEA_Obj(oxName=oxName, fuelName=fuelName)
+        output = self.C.get_full_cea_output(Pc=Pc, MR=OFRatio, eps=ExpansionRatio, short_output=1)
+
+    def addABS(self):
+        # Add ABS species to CEA
+        card_str = """
+        fuel ABS  C 3.85   H 4.85   N 0.43     wt%=100.00
+        h,cal=14990    t(k)=298.15   rho=1
+        """
+        add_new_fuel('ABS', card_str)
