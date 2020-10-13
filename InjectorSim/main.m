@@ -6,12 +6,8 @@ close all;
 % Tank Properties
 %--------------------------------------------------------------------------
 V = .01824; % Tank volume, m3
-M_o = 13; % Initial tank fluid mass, kg
-T1_o = 274.25; % Initial tank fluid temperature, K
-%M o = 10.15;
-%T1 o = 277.9;
-%P o = 4.025; % Initial tank fluid pressure, MPa
-%X o = 0.01; % Initial tank fluid quality,
+M_0 = 13; % Initial tank fluid mass, kg
+T1_0 = 274.25; % Initial tank fluid temperature, K
 R = 0.1889241; % Gas constant, kJ/(kg*K)
 % Injector Properties
 %--------------------------------------------------------------------------
@@ -20,39 +16,43 @@ d_inj = 0.0015; % Injector diameter, m
 Ac = (pi/4)*(d_inj)^2; % Injector cross sectional area; m3
 Cd = 0.8; % Injector discharge coefficient
 Pamb = 85.9e-3; % Atmospheric pressure, MPa. (4500ft)
-Inj_Switch = 1; % Isentropic = 1, Adiabatic = 2
 % Time Iteration
 %--------------------------------------------------------------------------
 tstop = 15; % Stop time, s
 dt = .5; % Step time, s
-
+species = "N2O";  % pick CO2 or N2O
+NIST = true;  % pull thermo data from NIST database or from approximation eqn(only CO2)
+Inj_Switch = 1; % Isentropic = 1, Adiabatic = 2
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+[a,b,c,d,e,f,g,h,i,j] = InjectorSim(V,M_0,T1_0,n_inj,d_inj,Cd,Pamb,species,dt)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initialize state
 %--------------------------------------------------------------------------
-rho1_o = M_o/V;
-Props1_o = CO2Props(T1_o,rho1_o);
-%Props1 o = CO2PropsNIST(T1 o,rho1 o);
-P1_o = Props1_o.P;
-rhol_o = Props1_o.rho_l;
-rhov_o = Props1_o.rho_v;
-X1_o = (rhov_o/rho1_o)*(rhol_o-rho1_o)/(rhol_o-rhov_o);
-h1_o = Props1_o.h;
-H1_o = M_o*Props1_o.h;
-st_o = Props1_o.state;
+rho1_0 = M_0/V;
+if ~NIST
+    Props1_0 = CO2Props(T1_0,rho1_0);  % equation based CO2 Model
+else
+    Props1_0 = PropsNIST(T1_0,rho1_0,species);  % Data table lookup
+end
+P1_0 = Props1_0.P;
+rhol_0 = Props1_0.rho_l;
+rhov_0 = Props1_0.rho_v;
+X1_0 = (rhov_0/rho1_0)*(rhol_0-rho1_0)/(rhol_0-rhov_0);
+h1_0 = Props1_0.h;
+H1_0 = M_0*Props1_0.h;
+st_0 = Props1_0.state;
 
 t = 0; % Column 1: Time (sec)
-M = M_o; % Column 2: Tank fluid mass, M (kg)
-rho1 = rho1_o; % Column 3: Tank fluid density, rho1 (kg/mˆ3)
-T1 = T1_o; % Column 4: Tank temperature, T1 (K)
-P1 = P1_o; % Column 5: Tank pressure, P1 (MPa)
-X1 = X1_o; % Column 6: Tank quality, X1 ()
-h1 = h1_o; % Column 7: Tank specific enthalpy, h1 (kJ/kg)
-H1 = H1_o; % Column 8: Tank total enthalpy, H1 (J) ??? Units
+M = M_0; % Column 2: Tank fluid mass, M (kg)
+rho1 = rho1_0; % Column 3: Tank fluid density, rho1 (kg/mˆ3)
+T1 = T1_0; % Column 4: Tank temperature, T1 (K)
+P1 = P1_0; % Column 5: Tank pressure, P1 (MPa)
+X1 = X1_0; % Column 6: Tank quality, X1 ()
+h1 = h1_0; % Column 7: Tank specific enthalpy, h1 (kJ/kg)
+H1 = H1_0; % Column 8: Tank total enthalpy, H1 (J) ??? Units
 mdot = 0; % Column 9: Tank mass flow rate, mdot (kg/s)
 P2 = Pamb; % Column 10: Injector outlet pressure, P2 (Pa)
-st = st_o; % Column 11: Fluid state, -1=- Input, 0=Liq, 1=Sat, 2=Gas
+st = st_0; % Column 11: Fluid state, -1=- Input, 0=Liq, 1=Sat, 2=Gas
 
 
 State = [t, M, rho1, T1, P1, X1, h1, H1, mdot, P2, st];
@@ -72,22 +72,23 @@ while t < tstop
     %======================================================================
     %Note: this guess MUST yeild a quality less than 1 and >0
     guess=[300 300]; %[T,rho]
-    %
+    
     %Set up function (need to match pressure and quality)
-    pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P1; ...
-    getfield(CO2Props(v(1),v(2)),'X')-X1];
-    %{
-    %Set up function (need to match pressure and quality)
-    pFunc = @(v) [getfield(CO2PropsNIST(v(1),v(2)),'P')-P1 ...
-    getfield(CO2PropsNIST(v(1),v(2)),'X')-X1];
-    %}
+    if ~NIST
+        pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P1; getfield(CO2Props(v(1),v(2)),'X')-X1];
+    else
+        pFunc = @(v) [getfield(PropsNIST(v(1),v(2),species),'P')-P1; getfield(PropsNIST(v(1),v(2),species),'X')-X1];
+    end
 
     % Solve for [T,rho] of saturated but pure liquid at P1
     % lsqnonlin tries to find a T and rho that makes pFunc = 0
     v1 = lsqnonlin(pFunc,guess,0,inf,optimset('Display','off','TolFun',1e-14));
     T1 = v1(1); rho1 = v1(2);
-    Props1 = CO2Props(T1,rho1);
-    % Props1 = CO2PropsNIST(T1,rho1);
+    if ~NIST
+        Props1 = CO2Props(T1,rho1);
+    else
+        Props1 = PropsNIST(T1,rho1,species);
+    end
     Pv1 = Props1.P; % Fluid Vapor Pressure, MPa
     rhoL1 = Props1.rho_l; % Fluid liquid density, kg/m3
     h1 = Props1.h; % Fluid specific enthalpy, kJ/kg
@@ -100,14 +101,18 @@ while t < tstop
     %Assume an isentropic (s1=s2) or adiabatic (h1=h2) injector , solve for properties at P2
     if Inj_Switch == 1
         %Set up function to match pressure and entropy
-        %
-        pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 getfield(CO2Props(v(1),v(2)),'s')-s1];
-        %{
-        pFunc = @(v) [getfield(CO2PropsNIST(v(1),v(2)),'P')-P2 getfield(CO2PropsNIST(v(1),v(2)),'s')-s1];
-        %}
+        if ~NIST
+            pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 getfield(CO2Props(v(1),v(2)),'s')-s1];
+        else
+            pFunc = @(v) [getfield(PropsNIST(v(1),v(2),species),'P')-P2 getfield(PropsNIST(v(1),v(2),species),'s')-s1];
+        end
     elseif Inj_Switch == 2
         %Set up function to match pressure and enthalpy
-        pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 getfield(CO2Props(v(1),v(2)),'h')-h1];
+        if ~NIST
+            pFunc = @(v) [getfield(CO2Props(v(1),v(2)),'P')-P2 getfield(CO2Props(v(1),v(2)),'h')-h1];
+        else
+            pFunc = @(v) [getfield(PropsNIST(v(1),v(2),species),'P')-P2 getfield(PropsNIST(v(1),v(2),species),'h')-h1];
+        end
     end
 
     % Solve for T2 & rho2 downstream of the injector
@@ -117,8 +122,11 @@ while t < tstop
     T2 = v2(1); rho2 = v2(2);
     % Solve for the remaining properties downstream of the injector
     %----------------------------------------------------------------------
-    Props2=CO2Props(T2,rho2); % Downstream fluid properties
-    % Props2=CO2PropsNIST(T2,rho2);
+    if ~NIST
+        Props2=CO2Props(T2,rho2); % Downstream fluid properties
+    else
+        Props2=PropsNIST(T2,rho2,species);
+    end
     Pv2 = Props2.P; % Downstream fluid vapor pressure
     h2 = Props2.h; % Downstream fluid enthalpy
 
@@ -150,16 +158,22 @@ while t < tstop
     % Calculate the new tank temperature
     %----------------------------------------------------------------------
     % Create a function for lsqnonlin to solve T(rho,h)
-    pFunc = @(T_Unknown) getfield(CO2Props(T_Unknown,rho1),'h')-h1;
-    % pFunc = @(T Unknown) getfield(CO2PropsNIST(T Unknown,rho1),'h')-h1;
-    % Sinse T Unknown is not pre defined in pFunc, lsqnonlin will find a ...T for rho Known and h Known
+    if ~NIST
+        pFunc = @(T_Unknown) getfield(CO2Props(T_Unknown,rho1),'h')-h1;
+    else
+        pFunc = @(T_Unknown) getfield(PropsNIST(T_Unknown,rho1,species),'h')-h1;
+    end
+    % Since T Unknown is not pre defined in pFunc, lsqnonlin will find a ...T for rho Known and h Known
     T1 = lsqnonlin(pFunc,300,0,inf,optimset('Display','off','TolFun',1e-14));
     % [T1] = CO2 rho h 2T(rho1,h1,300);
 
     % Calulate the new tank pressure and quality
     %----------------------------------------------------------------------
-    Props1 = CO2Props(T1,rho1);
-    % Props1 = CO2PropsNIST(T1,rho1);
+    if ~NIST
+    	Props1 = CO2Props(T1,rho1);
+    else
+        Props1 = PropsNIST(T1,rho1,species);
+    end
     P1 = Props1.P;
     X1 = Props1.X;
 
