@@ -60,7 +60,7 @@ rhoc = 467.6; % Critical density, kg/m3 (Eq. 3.5)
 %==========================================================================
 [labels,T_NIST,y] = readColData('SatCO2Props.txt',25); %doesnt work use
 importdata as follows:
-data = importdata('SatCO2Props.txt');
+data = importdata('SatCO2Props.txt')
 y = data.data
 T_NIST = y(:,1);
 P_NIST = y(:,2); % Pressure (MPa)
@@ -99,21 +99,21 @@ c_l_NIST = SatCO2Props.c_l_NIST; % Sound Speed (l, m/s)
 c_v_NIST = SatCO2Props.c_v_NIST; % Sound Speed (v, m/s)
 %% Interpolate to find the liquid and vapor properties
 %==========================================================================
-rho_l = interp1(T_NIST,rho_l_NIST,T,'spline');
-rho_v = interp1(T_NIST,rho_v_NIST,T,'spline');
-P = interp1(T_NIST,P_NIST,T,'spline');
-s_l = interp1(T_NIST,s_l_NIST,T,'spline');
-s_v = interp1(T_NIST,s_v_NIST,T,'spline');
-u_l = interp1(T_NIST,u_l_NIST,T,'spline');
-u_v = interp1(T_NIST,u_v_NIST,T,'spline');
-cp_l = interp1(T_NIST,cp_l_NIST,T,'spline');
-cp_v = interp1(T_NIST,cp_v_NIST,T,'spline');
-cv_l = interp1(T_NIST,cv_l_NIST,T,'spline');
-cv_v = interp1(T_NIST,cv_v_NIST,T,'spline');
-h_l = interp1(T_NIST,h_l_NIST,T,'spline');
-h_v = interp1(T_NIST,h_v_NIST,T,'spline');
-c_l = interp1(T_NIST,c_l_NIST,T,'spline');
-c_v = interp1(T_NIST,c_v_NIST,T,'spline');
+rho_l = interp1(T_NIST,rho_l_NIST,T,'linear','extrap');
+rho_v = interp1(T_NIST,rho_v_NIST,T,'linear','extrap');
+P = interp1(T_NIST,P_NIST,T,'linear','extrap');
+s_l = interp1(T_NIST,s_l_NIST,T,'linear','extrap');
+s_v = interp1(T_NIST,s_v_NIST,T,'linear','extrap');
+u_l = interp1(T_NIST,u_l_NIST,T,'linear','extrap');
+u_v = interp1(T_NIST,u_v_NIST,T,'linear','extrap');
+cp_l = interp1(T_NIST,cp_l_NIST,T,'linear','extrap');
+cp_v = interp1(T_NIST,cp_v_NIST,T,'linear','extrap');
+cv_l = interp1(T_NIST,cv_l_NIST,T,'linear','extrap');
+cv_v = interp1(T_NIST,cv_v_NIST,T,'linear','extrap');
+h_l = interp1(T_NIST,h_l_NIST,T,'linear','extrap');
+h_v = interp1(T_NIST,h_v_NIST,T,'linear','extrap');
+c_l = interp1(T_NIST,c_l_NIST,T,'linear','extrap');
+c_v = interp1(T_NIST,c_v_NIST,T,'linear','extrap');
 
 %% CALCULATE THE PROPERTIES AT THE GIVEN TEMPERATURE AND DENSITY
 
