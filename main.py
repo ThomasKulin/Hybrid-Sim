@@ -106,13 +106,13 @@ while r_L[i] < r_final and i < maxIterations-1:
     OF_est = mdot_ox / mdot_fuel_est  # Oxidizer to fuel ratio estimate
 
     R_e = G_total_est * Lp / mu_ox  # longitudinal Reynolds number
-    
+
     C_f_straight = 0.074/pow(R_e, 1/5)  # straight port skin friction coefficient
 
     P_helix = Lp/N_helix  # [m] helix pitch distance
     R_c = r_helix * (1 + pow(P_helix/(2*np.pi*r_helix), 2))  # helix radius of curvature [m]
     R_c_eff = R_c * np.sqrt(1 + np.pi/2 * pow((2*r_L[i]-2*r_0)/R_c, 2))  # effective helix radius of curvature [m] (accounts for change in port radius)
-    
+
     A_C_f = 1 + 0.0075/C_f_straight * np.sqrt(r_L[i]/R_c_eff)  # radial wall blowing amplification factor
     A_beta = pow(1 + 2 * pow(2*np.pi*N_helix, 2) * pow(OF_est, 2) * MW / MW_ox * r_helix / r_L[i], 0.77)  # radial wall blowing amplification factor
 
@@ -147,7 +147,7 @@ while r_L[i] < r_final and i < maxIterations-1:
     # exit temperature from above
     Ve = np.sqrt(((2*gamma*R_g*Te)/(gamma-1))*(1-(Pe/Pc_Pa))**((gamma-1)/gamma))  # [m/s]
     
-    #Now calculate the theoretical thrust of the motor using eqn 1.6 from SPAD
+    # Now calculate the theoretical thrust of the motor using eqn 1.6 from SPAD
     thrust[i] = lamda*(mdot_total[i]*Ve + (Pe-Pa)*A_e)  # [N]
 
 

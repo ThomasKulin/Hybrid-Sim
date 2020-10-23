@@ -20,11 +20,11 @@ Pamb = 85.9e-3; % Atmospheric pressure, MPa. (4500ft)
 %--------------------------------------------------------------------------
 tstop = 15; % Stop time, s
 dt = .5; % Step time, s
-species = "N2O";  % pick CO2 or N2O
-NIST = true;  % pull thermo data from NIST database or from approximation eqn(only CO2)
+species = "CO2";  % pick CO2 or N2O
+NIST = false;  % pull thermo data from NIST database or from approximation eqn(only CO2)
 Inj_Switch = 1; % Isentropic = 1, Adiabatic = 2
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[a,b,c,d,e,f,g,h,i,j] = InjectorSim(V,M_0,T1_0,n_inj,d_inj,Cd,Pamb,species,dt)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initialize state
 %--------------------------------------------------------------------------
