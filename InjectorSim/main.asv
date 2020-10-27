@@ -7,7 +7,7 @@ close all;
 %--------------------------------------------------------------------------
 V = .01824; % Tank volume, m3
 M_0 = 13; % Initial tank fluid mass, kg
-T1_0 = 298; % Initial tank fluid temperature, K
+T1_0 = 274.25; % Initial tank fluid temperature, K
 R = 0.1889241; % Gas constant, kJ/(kg*K)
 % Injector Properties
 %--------------------------------------------------------------------------
@@ -15,7 +15,7 @@ n_inj = 20; % Number of injector orifices (UNTESTED)-THOMAS
 d_inj = 0.0015; % Injector diameter, m
 Ac = (pi/4)*(d_inj)^2; % Injector cross sectional area; m3
 Cd = 0.8; % Injector discharge coefficient
-Pamb = 85.9e-3; % Atmospheric pressure, MPa. (4500ft)
+Pamb = 3.5%85.9e-3; % Atmospheric pressure, MPa. (4500ft)
 % Time Iteration
 %--------------------------------------------------------------------------
 tstop = 15; % Stop time, s
@@ -163,7 +163,7 @@ while t < tstop
     else
         pFunc = @(T_Unknown) getfield(PropsNIST(T_Unknown,rho1,species),'h')-h1;
     end
-    if i == 29
+    if i == 16
         penis =1
     end
     
