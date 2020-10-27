@@ -9,26 +9,52 @@ import numpy as np
 
 
 class Injector:
-    def __init__(self, V=0.01824, M_0=13, T1_0=274.25, n_inj=20, d_inj=0.0015, Cd=0.8, P2=85.9e-3, species="N2O", dt=0.5):
+    def __init__(self):
+        self.V = 0  # Tank volume [m^3]
+        self.M = 0  # Tank fluid mass [kg]
+        self.T1 = 0 # Tank fluid temperature [K]
+        self.P1 = 750 / 145.038  # initial tank pressure [mPa]
+        self.n_inj = 1  # Number of injector orifices
+        self.d_inj = 0.001  # Injector orifice diameter [m]
+        self.Cd = 0  # Injector discharge coefficient
+        self.P2 = 0  # downstream pressure [MPa]
+        self.species = 0  # species going through the injector (note, humans are not permitted to enter)
+        self.dt = 0  # time step [s]
+        self.rho1 = 0  # Fluid density [kg/m^3]
+        self.X1 = 0  # Fluid quality (measurement of saturation)
+        self.h1 = 0  # Tank specific enthalpy [kJ/kg]
+        self.H1 = 0  # Tank total enthalpy [kJ/kg]
+        self.state1 = 0   # Tank fluid State [-1=- Input, 0=Liq, ...1=Sat, 2=Gas]
+        self.initializeMatlab()
+
+    def initializeVariables(self, V=0.01824, M_0=13, T1_0=274.25, n_inj=20, d_inj=0.0015, Cd=0.8, P2=85.9e-3, species="N2O", dt=0.5):
         self.V = V  # Tank volume [m^3]
         self.M = M_0  # Tank fluid mass [kg]
         self.T1 = T1_0  # Tank fluid temperature [K]
+        self.P1 = 750 / 145.038  # initial tank pressure [mPa]
         self.n_inj = n_inj  # Number of injector orifices
         self.d_inj = d_inj  # Injector orifice diameter [m]
         self.Cd = Cd  # Injector discharge coefficient
         self.P2 = P2  # downstream pressure [MPa]
         self.species = species  # species going through the injector (note, humans are not permitted to enter)
         self.dt = dt  # time step [s]
-        self.initializeMatlab()
 
     def initializeMatlab(self):
         self.eng = matlab.engine.start_matlab()
         path = os.getcwd()
         self.eng.cd(path+'\\injectorSim')
 
+    def setChamberPressure(self, Pc):
+        self.P2 = Pc
+
     def simulate(self):
         print("INPUTS:", float(self.V), float(self.M), float(self.T1), float(self.n_inj), float(self.d_inj), float(self.Cd), float(self.P2), self.species, float(self.dt))
-        data = self.eng.InjectorSim(float(self.V), float(self.M), float(self.T1), float(self.n_inj), float(self.d_inj), float(self.Cd), float(self.P2), self.species, float(self.dt), nargout=9)
+        if (self.P1 > self.P2):
+            data = self.eng.InjectorSim(float(self.V), float(self.M), float(self.T1), float(self.n_inj), float(self.d_inj), float(self.Cd), float(self.P2), self.species, float(self.dt), nargout=9)
+        else:
+            print("ERROR: Chamber pressure greater than tank pressure.")
+            data = [self.M, self.rho1, self.T1, self.P1, self.X1, self.h1, self.H1, 0, self.state1]
+            raise Exception("encountered situation that makes no sense")
         self.M = data[0]  # Tank fluid mass [kg]
         self.rho1 = data[1]  # Tank fluid density [kg/m^3]
         self.T1 = data[2]  # Tank Temperature [K]
@@ -38,7 +64,7 @@ class Injector:
         self.H1 = data[6]  # Tank total enthalpy [kJ]
         self.mdot = data[7]  # Tank mass flow rate [kg/s]
         self.state1 = data[8]  # Tank fluid State [-1=- Input, 0=Liq, ...1=Sat, 2=Gas]
-        print(data)
+        #print(data)
 
 
 class Fuel:
@@ -119,7 +145,8 @@ class CEA:
             "HNO": 102.032,
             "NO2": 34.193,
             "C2H6": -103.819,
-            "HCHO,formaldehy": -108.58
+            "HCHO,formaldehy": -108.58,
+            "C3H6,propylene": 20.0
         }
         # Dictionary holding molar masses for reactants [g/mol]
         self.MMDict = {

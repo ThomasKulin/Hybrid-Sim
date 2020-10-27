@@ -14,10 +14,10 @@ finalD = 0.1143  # [m]    Maximum possible diameter of the motor after completed
 initialD = 0.01524  # [m]    Initial diameter of combustion port, pre-burn
 initial_OF = 5#1.1  # initial OF ratio
 initial_Pc = 400  # initial chamber pressure [PSI]
-r_helix = 0.00762  # [m] Radius of helix curvature
-N_helix = 0.5#2.36  # number of helical port turns
+r_helix = 0.00762*2  # [m] Radius of helix curvature
+N_helix = 2#2.36  # number of helical port turns
 Lp = 0.6  # [m]    Length of the combustion port
-throatR = 0.0254/2  # [m]    Radius of the nozzle throat
+throatR = 0.035/2  # [m]    Radius of the nozzle throat
 exitR = 0.041275  # [m]    Radius of the nozzle exit
 lamda = 0.97  # Nozzle efficiency
 Pa = 101325  # [Pa] Ambient pressure
@@ -60,8 +60,8 @@ test = [0 for x in range(maxIterations)]
 r_L[0] = r_0
 i = 0
 
-C = CEA(oxName='N2O', fuelName='ABS')
-# C = CEA(oxName='LO2', fuelName='ABS')
+# C = CEA(oxName='N2O', fuelName='ABS')
+C = CEA(oxName='LO2', fuelName='ABS')
 
 while r_L[i] < r_final and i < maxIterations-1:
     i=i+1  # step counter
@@ -132,7 +132,7 @@ while r_L[i] < r_final and i < maxIterations-1:
         Pc[i] = (Pc[i]+Pc[i-1]+Pc[i-2])/3
     Isp_Vac, C_star, T_flame, MW, gamma, Cp, mu, thermCond, prandtl = C.getChamberEquilibrium(Pc[i], OF_ratio[i], epsilon, 3)
     test[i] = gamma
-
+    gamma = 1.17
     # Calcualte the exit Mach number, to do so use eqn 3.100 from SPAD (Humble)and solve it numerically
     x = Symbol('x')
     Me = float(nsolve(
