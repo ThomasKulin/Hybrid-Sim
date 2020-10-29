@@ -35,10 +35,10 @@ mu_ox = 2.7E-5  # absolute viscosity of N2O [(N*s)/m^2]. this value is for 20 C,
 initial_OF = 3#1.1  # initial OF ratio
 
 # Fuel Parameters
-finalD = 0.1143  # [m]    Maximum possible diameter of the motor after completed burn
-initialD = 0.01524  # [m]    Initial diameter of combustion port, pre-burn
-r_helix = 0.00762*2  # [m] Radius of helix curvature
-N_helix = 2  # number of helical port turns
+finalD = 0.0254*5  # [m]    Maximum possible diameter of the motor after completed burn
+initialD = 0.0254*2  # [m]    Initial diameter of combustion port, pre-burn
+r_helix = 0.0254  # [m] Radius of helix curvature
+N_helix = 1  # number of helical port turns
 Lp = 0.4  # [m]    Length of the combustion port
 MW_fuel = 83.92  # [g/mol] ABS fuel molecular weight
 rho_fuel = 975  # [kg/m^3]  Average density of ABS plastic
