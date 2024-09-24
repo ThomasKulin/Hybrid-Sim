@@ -27,7 +27,8 @@ function [M, rho1, T1, P1, X1, h1, H1, mdot, st1] = InjectorSim(V,M_0,T1_0,n_inj
     % species: Species going through the injector (note, humans are not permitted to enter)
     % dt: Time step [s]
     
- 
+    warning('off');
+
     %%Calculate the stuff
     %==========================================================================
     % Tank Properties

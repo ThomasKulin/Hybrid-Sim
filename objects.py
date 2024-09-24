@@ -9,7 +9,7 @@ import numpy as np
 
 
 class Injector:
-    def __init__(self):
+    def __init__(self, path=None):
         self.V = 0  # Tank volume [m^3]
         self.M = 0  # Tank fluid mass [kg]
         self.T1 = 0 # Tank fluid temperature [K]
@@ -25,13 +25,13 @@ class Injector:
         self.h1 = 0  # Tank specific enthalpy [kJ/kg]
         self.H1 = 0  # Tank total enthalpy [kJ/kg]
         self.state1 = 0   # Tank fluid State [-1=- Input, 0=Liq, ...1=Sat, 2=Gas]
-        self.initializeMatlab()
+        self.initializeMatlab(path)
 
-    def initializeVariables(self, V=0.01824, M_0=13, T1_0=274.25, n_inj=20, d_inj=0.0015, Cd=0.8, P2=85.9e-3, species="N2O", dt=0.5):
+    def initializeVariables(self, V=0.01824, M_0=13, T1_0=274.25, P1_0=5.171, n_inj=20, d_inj=0.0015, Cd=0.8, P2=85.9e-3, species="N2O", dt=0.5):
         self.V = V  # Tank volume [m^3]
         self.M = M_0  # Tank fluid mass [kg]
         self.T1 = T1_0  # Tank fluid temperature [K]
-        self.P1 = 750 / 145.038  # initial tank pressure [mPa]
+        self.P1 = P1_0   # initial tank pressure [mPa]
         self.n_inj = n_inj  # Number of injector orifices
         self.d_inj = d_inj  # Injector orifice diameter [m]
         self.Cd = Cd  # Injector discharge coefficient
@@ -39,10 +39,14 @@ class Injector:
         self.species = species  # species going through the injector (note, humans are not permitted to enter)
         self.dt = dt  # time step [s]
 
-    def initializeMatlab(self):
+    def initializeMatlab(self, path=None):
         self.eng = matlab.engine.start_matlab()
-        path = os.getcwd()
-        self.eng.cd(path+'\\injectorSim')
+        if not path:
+            path = os.getcwd()
+            self.eng.cd(path+'\\injectorSim')
+        else:
+            self.eng.cd(path + '\\injectorSim')
+
 
     def setChamberPressure(self, Pc):
         self.P2 = Pc
