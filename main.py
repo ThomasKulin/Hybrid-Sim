@@ -2,6 +2,8 @@
 # Written by: Thomas Kulin
 # October 2, 2020
 
+# Updated to compare against hot fire test Aug 30, 2024
+
 # Designed from Cole's matlab simulator and this study: https://arc-aiaa-org.proxy.queensu.ca/doi/pdf/10.2514/1.B36208
 
 import numpy as np
@@ -13,16 +15,15 @@ from objects import Injector
 
 # Variables for Hybrid Sim
 v_tank = 0.01824  # [M^3] Oxidizer tank volume
-m_tank = 13  # [kg] Mass of oxidizer in tank
-t_tank = 298  # [K] Initial tank temperature
-n_inj = 25  # number of injector orifices
+m_tank = 4.3  # [kg] Mass of oxidizer in tank
+t_tank = 280  # [K] Initial tank temperature
+n_inj = 26  # number of injector orifices
 d_inj = 0.0015  # [m] Orifice port diameter
-Cd = 0.8  # injector discharge coefficient
-ox_Species = "N2O"  # floaty boom stuff
+Cd = 0.6  # injector discharge coefficient
 initial_Pc = 50  # initial chamber pressure [PSI]
-throatR = 0.035/2  # [m]    Radius of the nozzle throat
-exitR = 0.041275  # [m]    Radius of the nozzle exit
-lamda = 0.97  # Nozzle efficiency
+throatR = 0.0254*0.8  # [m]    Radius of the nozzle throat
+exitR = 0.0254*2  # [m]    Radius of the nozzle exit
+lamda = 0.6  # Nozzle efficiency
 Pa = 101325  # [Pa] Ambient pressure
 R = 8314.41 / 29.19  # [J/kmol*K] Universal gas constant divided by MM of combustion products
 
@@ -35,19 +36,19 @@ mu_ox = 2.7E-5  # absolute viscosity of N2O [(N*s)/m^2]. this value is for 20 C,
 initial_OF = 3#1.1  # initial OF ratio
 
 # Fuel Parameters
-finalD = 0.0254*5  # [m]    Maximum possible diameter of the motor after completed burn
-initialD = 0.0254*2  # [m]    Initial diameter of combustion port, pre-burn
-r_helix = 0.0254  # [m] Radius of helix curvature
-N_helix = 1  # number of helical port turns
-Lp = 0.4  # [m]    Length of the combustion port
-MW_fuel = 83.92  # [g/mol] ABS fuel molecular weight
-rho_fuel = 975  # [kg/m^3]  Average density of ABS plastic
-h_vap = 3  # [kJ/g] Heat of vaporization
-T_vap = 600  # [K] vaporization temperature of the fuel. Estimate of the temperature at fuel surface for delta h calculation
+finalD = 0.0254*3.5  # [m]    Maximum possible diameter of the motor after completed burn
+initialD = 0.0254  # [m]    Initial diameter of combustion port, pre-burn
+r_helix = 0.001*0.0254/2  # [m] Radius of helix curvature
+N_helix = 0.00001  # number of helical port turns  (very low number to simulate straight port)
+Lp = 0.8  # [m]    Length of the combustion port
+MW_fuel = 57.01 #83.92  # [g/mol] ABS fuel molecular weight
+rho_fuel = 975*0.95  # [kg/m^3]  Average density of ABS plastic multiplied by a scaling factor for 3d printing
+h_vap = 3.070  # [kJ/g] Heat of vaporization  (see https://sci-hub.ru/https://arc.aiaa.org/doi/10.2514/6.2014-3752)
+T_vap = 700  # [K] vaporization temperature of the fuel. Estimate of the temperature at fuel surface for delta h calculation
 
 # simulation parameters
-dt = 0.25  # [s] Differential time step to be used for each iteration
-maxIterations = 1000
+dt = 0.1  # [s] Differential time step to be used for each iteration
+maxIterations = 10000
 
 # Caclulated initial variables for simulation
 A_t = np.pi * pow(throatR, 2)  # [m^2]  Specify the nozzle throat area
@@ -64,7 +65,7 @@ Pc = [initial_Pc for x in range(maxIterations)]
 m_fuel = [0 for x in range(maxIterations)]
 m_ox = [0 for x in range(maxIterations)]
 G_total = [0 for x in range(maxIterations)]
-rdot_helix_plot = [0 for x in range(maxIterations)]
+rdot_plot = [0 for x in range(maxIterations)]
 mdot_ox = [0 for x in range(maxIterations)]
 mdot_fuel = [0 for x in range(maxIterations)]
 mdot_total = [0 for x in range(maxIterations)]
@@ -90,19 +91,21 @@ while r_L[i] < r_final and i < maxIterations-1 and Pc[i] > 40:
     if (Pc[i-1] > p_tank[i-1]-10):  # break out of sim if chamber pressure comes within 10 PSI of tank pressure. prevents errors at end of run
         break
 
-    inj.initializeVariables(v_tank, m_tank[i-1], t_tank[i-1], n_inj, d_inj, Cd, Pc[i - 1] / 145.038, ox_Species, dt)
+    inj.initializeVariables(v_tank, m_tank[i-1], t_tank[i-1], p_tank[i - 1] / 145.038, n_inj, d_inj, Cd, Pc[i - 1] / 145.038, ox_Species, dt)
     inj.simulate()
     mdot_ox[i] = inj.mdot
     m_tank[i] = inj.M
     t_tank[i] = inj.T1
-    p_tank[i] = inj.P1 * 145.038
+    p_tank[i] = inj.P1 * 145.038  # convert MPA to PSI
     print("INJ PARAMS: ", "Flow:"+str(mdot_ox[i])+"kg/s", "Tank:"+str(p_tank[i])+'PSI', "Chamber:"+str(Pc[i-1])+"PSI")
 
     # Calculate thermodynamic properties in combustion chamber
-    C.getOutput(Pc[i], OF_ratio[i], epsilon, True)
+    C.getOutput(Pc[i], OF_ratio[i], epsilon, printOutput=True)
     Isp_Vac, C_star, T_flame, MW, gamma, Cp, mu, thermCond, prandtl = C.getChamberEquilibrium(Pc[i-1], OF_ratio[i-1], epsilon, 1)  # get ISP [s], C* [m/s], T [K], MW [g/mol], gamma, Cp [j/g*C], viscosity[Poise], thermal conductivity [W/m*K], Prandtl Number [-]
     Q_total = C.getReactionHeat(Pc[i-1], OF_ratio[i-1], epsilon, 1)
-    deltaH_surf = abs(Q_total) - Cp*(T_vap - 298.15)/1000  # Convective enthalpy transfer per unit massflow from the flame zone to the fuel
+    deltaH_surf = abs(Q_total) - Cp*(T_vap - 298.15)/1000  # Convective enthalpy transfer per unit massflow from the flame zone to the fuel  (see chapter 2, High Regression Rate Hybrid Rocket Fuel Grains with Helical Port Structures)
+    # eta = 0.87
+    # deltaH_surf = Cp * (eta**2 * (T_flame - 700)) / 1000  # alternate calculation (https://sci-hub.ru/https://arc.aiaa.org/doi/10.2514/6.2014-3752,  https://sci-hub.ru/https://arc.aiaa.org/doi/abs/10.2514/1.B34382)
     h_ratio = deltaH_surf / h_vap
     print("delta H surf / Hv  = ", h_ratio)
 
@@ -144,7 +147,8 @@ while r_L[i] < r_final and i < maxIterations-1 and Pc[i] > 40:
     A_total = A_beta * A_C_f
 
     rdot_helix = A_C_f * A_beta * rdot_straight  # helical port regression rate [m/s]
-    rdot_helix_plot[i] = rdot_helix
+    rdot_plot[i] = rdot_helix
+    # rdot_plot[i] = rdot_straight
 
     m_fuel[i] = rdot_helix * rho_fuel * np.pi * r_L[i - 1] * 2 * Lp *dt  # fuel consumed in time step [kg]
     mdot_fuel[i] = m_fuel[i]/dt
@@ -163,12 +167,11 @@ while r_L[i] < r_final and i < maxIterations-1 and Pc[i] > 40:
         OF_ratio[i] = (OF_ratio[i]+OF_ratio[i-1])/2
         Pc[i] = (Pc[i]+Pc[i-1])/3
     Isp_Vac, C_star, T_flame, MW, gamma, Cp, mu, thermCond, prandtl = C.getChamberEquilibrium(Pc[i], OF_ratio[i], epsilon, 3)
-    test[i] = gamma
+
     # gamma = 1.17
     # Calcualte the exit Mach number, to do so use eqn 3.100 from SPAD (Humble)and solve it numerically
     x = Symbol('x')
-    Me = float(nsolve(
-        epsilon ** (2 * (gamma - 1) / (gamma + 1)) - (2 / (1 + gamma)) * x ** (-2 * (gamma - 1) / (gamma + 1)) - (
+    Me = float(nsolve(epsilon ** (2 * (gamma - 1) / (gamma + 1)) - (2 / (1 + gamma)) * x ** (-2 * (gamma - 1) / (gamma + 1)) - (
                     (gamma - 1) / 2) * x ** (2 * (1 - ((gamma - 1) / (gamma + 1)))), x, 3))  # initial guess 3
 
     # Calculate the exit pressure, use eqn 3.95 from SPAD (Humble), with the
@@ -185,19 +188,32 @@ while r_L[i] < r_final and i < maxIterations-1 and Pc[i] > 40:
 
     # Now calculate the theoretical thrust of the motor using eqn 1.6 from SPAD
     thrust[i] = lamda * (mdot_total[i] * Ve + (Pe - Pa) * A_e)  # [N]
+    test[i] = m_fuel[i]
+
+impulse = 0
+count = 0
+for i in thrust:
+    impulse += i*dt
+    count += 1 if thrust != 0 else 0
+
+
+print("AVG Thrust:", sum(thrust)/count, "\tBurn Duration:", max(time), "\tTotal Impulse", impulse)
 
 fig, ax = plt.subplots()
-ax.plot(time, thrust, '.r', label='Thrust')
+thrust_line, = ax.plot(time, thrust, '.r', label='Thrust')
 ax.set_xlabel('Time [s]')
 ax.set_ylabel('Thrust [N]')
 ax.set_title('Thrust vs regression rate')
 ax.set_ylim(0, 6000)
 plt.grid()
 ax2 = ax.twinx()
-ax2.plot(time, rdot_helix_plot, '.g', label='rdot')
+rdot_line, = ax2.plot(time, rdot_plot, '.g', label='Regression Rate')
 ax2.set_ylabel('Regression Rate [m/s]')
 ax2.set_ylim(0, 0.08)
 plt.grid()
+lines = [thrust_line, rdot_line]
+labels = [line.get_label() for line in lines]
+ax.legend(lines, labels, loc='upper right')
 
 fig, ax = plt.subplots()
 ax.plot(time, OF_ratio, '.b', label='OF')
@@ -205,6 +221,7 @@ ax.set_xlabel('Time [s]')
 ax.set_ylabel('OF Ratio [-]')
 ax.set_title('OF vs. Time')
 plt.grid()
+plt.legend()
 
 fig, ax = plt.subplots()
 ax.plot(time, Pc, '.r', label='Pc')
@@ -226,10 +243,10 @@ ax.set_ylim(0, 2)
 plt.legend()
 
 fig, ax = plt.subplots()
-ax.plot(time, test, '.r', label='test')
+ax.plot(time, test, '.r')
 ax.set_xlabel('Time [s]')
-ax.set_ylabel('test')
-ax.set_title('test')
+ax.set_ylabel('test var')
+ax.set_title('test vs. Time')
 plt.grid()
 
 plt.show()
